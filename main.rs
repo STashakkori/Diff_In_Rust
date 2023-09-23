@@ -10,11 +10,56 @@ fn main() {
     std::process::exit(1);
   }
 
-  let file1_path = &args[1];
-  let file2_path = &args[2];
+  let left_file = &args[1];
+  let right_file = &args[2];
 
-  let file1 = std::fs::read_to_string(Path::new(file1_path)).unwrap();
-  let file2 = std::fs::read_to_string(Path::new(file2_path)).unwrap();
+  if !Path::new(&left_file).exists() {
+    println!("diff: \"{}\" doesn't exist.", left_file);
+  }
+  if !Path::new(&right_file).exists() {
+    println!("diff: \"{}\" doesn't exist.", right_file);
+  }
+
+  if left_file == right_file {
+    println!("Files are the same.");
+  }
+
+  let left_md = match std::fs::metadata(left_file.trim()) {
+    Ok(md) => md,
+	Err(_) => {
+	  println!("Failed to get metadata of the left file.");
+      std::process::exit(1);
+	}
+  };
+  let right_md = match std::fs::metadata(right_file.trim()) {
+    Ok(md) => md,
+	Err(_) => {
+      println!("Failed to get metadata of the right file.");
+      std::process::exit(1);
+	}
+  };
+
+  if left_md.is_dir() || right_md.is_dir() {
+    println!("Directory diffs not supported yet.");
+  }
+
+  let is_leftbin = match binaryornot::is_binary(&left_file) {
+    Ok(o) => o,
+    Err(_) => std::process::exit(1)
+  };
+
+  let is_rightbin = match binaryornot::is_binary(&right_file) {
+    Ok(o) => o,
+    Err(_) => std::process::exit(1)
+  };
+
+  if is_leftbin || is_rightbin {
+    println!("This diff does not handle binaries.");
+    std::process::exit(1);
+  }
+
+  let file1 = std::fs::read_to_string(Path::new(left_file)).unwrap();
+  let file2 = std::fs::read_to_string(Path::new(right_file)).unwrap();
 
   let diff = lines(&file1, &file2);
 
